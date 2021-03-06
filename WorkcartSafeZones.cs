@@ -79,6 +79,9 @@ namespace Oxide.Plugins
 
         private bool? OnEntityTakeDamage(BasePlayer player)
         {
+            if (player.IsNpc)
+                return null;
+
             if (!_pluginConfig.AllowDamageToHostileOccupants && player.IsHostile())
             {
                 var cart = GetMountedCart(player);
@@ -98,6 +101,9 @@ namespace Oxide.Plugins
 
         private void OnEntityEnter(TriggerParent triggerParent, BasePlayer player)
         {
+            if (player.IsNpc)
+                return;
+
             var component = triggerParent.GetComponentInParent<SafeCart>();
             if (component == null)
                 return;
