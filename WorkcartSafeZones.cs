@@ -102,10 +102,19 @@ namespace Oxide.Plugins
             if (component == null)
                 return;
 
-            if (!player.IsItemHoldRestricted(player.GetActiveItem()))
+            var activeItem = player.GetActiveItem();
+            if (activeItem == null || !player.IsHostileItem(activeItem))
                 return;
 
-            player.UpdateActiveItem(0);
+            var position = activeItem.position;
+            activeItem.RemoveFromContainer();
+            player.inventory.SendUpdatedInventory(PlayerInventory.Type.Belt, player.inventory.containerBelt);
+
+            player.Invoke(() =>
+            {
+                if (!activeItem.MoveToContainer(player.inventory.containerBelt, position))
+                    player.inventory.GiveItem(activeItem);
+            }, 0.2f);
         }
 
         #endregion
