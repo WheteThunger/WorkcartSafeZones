@@ -125,6 +125,18 @@ namespace Oxide.Plugins
 
         #endregion
 
+        #region API
+
+        private bool API_CreateSafeZone(TrainEngine workcart)
+        {
+            if (workcart.GetComponent<SafeCart>() != null)
+                return true;
+
+            return TryCreateSafeZone(workcart);
+        }
+
+        #endregion
+
         #region Commands
 
         [Command("safecart.add")]

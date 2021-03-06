@@ -48,7 +48,7 @@ Default configuration:
 
 - `AutoZones` (`true` or `false`) -- While `true`, all workcarts will automatically have safe zones; the `safecart.add` and `safecart.remove` commands will be disabled.
 - `AllowDamageToHostileOccupants` (`true` or `false`) -- While `true` (default), hostile players aboard the workcart can receive damage. While `false`, all players aboard the workcart are invulnerable.
-- `UnequipWeaponOnMount` (`true` or `false`) -- While `false` (default), players may board the workcart with a weapon, but they will become hostile if they keep it out. While `true`, boarding the workcart will unequip your active weapon or other "hostile" item, even if you are hostile.
+- `UnequipWeaponOnMount` (`true` or `false`) -- While `false` (default), players may board the workcart with a weapon, but they will become hostile if they keep holding it. While `true`, boarding the workcart will unequip your active weapon or other "hostile" item.
 - `SafeZoneRadius` -- Radius of the safe zone around the workcart.
   - Set to `0` to only apply the safe zone to players standing on the workcart. Otherwise, at least `5` is recommended.
 - `Turrets` -- List of turret positions relative to the workcart.
@@ -68,6 +68,19 @@ Default configuration:
   "Remove.Success": "Successfully removed safe zone from the workcart."
 }
 ```
+
+## Developer API
+
+#### API_CreateSafeZone
+
+Plugins can call this API to create a safe zone on a workcart.
+
+```csharp
+bool API_CreateSafeZone(TrainEngine workcart)
+```
+
+- Returns `true` if a safe zone was successfully added, or if the workcart already had a safe zone
+- Returns `false` if another plugin blocked it with the `OnWorkcartSafeZoneCreate` hook
 
 ## Developer Hooks
 
