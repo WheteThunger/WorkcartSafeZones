@@ -34,6 +34,9 @@ namespace Oxide.Plugins
 
             permission.RegisterPermission(PermissionUse, this);
 
+            if (!_pluginConfig.UnequipWeaponOnMount)
+                Unsubscribe(nameof(OnEntityEnter));
+
             Unsubscribe(nameof(OnEntitySpawned));
         }
 
@@ -91,6 +94,18 @@ namespace Oxide.Plugins
             }
 
             return null;
+        }
+
+        private void OnEntityEnter(TriggerParent triggerParent, BasePlayer player)
+        {
+            var component = triggerParent.GetComponentInParent<SafeCart>();
+            if (component == null)
+                return;
+
+            if (!player.IsItemHoldRestricted(player.GetActiveItem()))
+                return;
+
+            player.UpdateActiveItem(0);
         }
 
         #endregion
@@ -395,6 +410,9 @@ namespace Oxide.Plugins
 
             [JsonProperty("AllowDamageToHostileOccupants")]
             public bool AllowDamageToHostileOccupants = true;
+
+            [JsonProperty("UnequipWeaponOnMount")]
+            public bool UnequipWeaponOnMount = false;
 
             [JsonProperty("Turrets")]
             public TurretConfig[] Turrets = new TurretConfig[]
