@@ -74,6 +74,25 @@ namespace Oxide.Plugins
             return null;
         }
 
+        private bool? OnEntityTakeDamage(BasePlayer player)
+        {
+            if (!_pluginConfig.AllowDamageToHostileOccupants && player.IsHostile())
+            {
+                var cart = GetMountedCart(player);
+                if (cart == null)
+                    return null;
+
+                var component = cart.GetComponent<SafeCart>();
+                if (component == null)
+                    return null;
+
+                // Return true (standard) to cancel default behavior (prevent damage).
+                return true;
+            }
+
+            return null;
+        }
+
         #endregion
 
         #region Commands
@@ -373,6 +392,9 @@ namespace Oxide.Plugins
 
             [JsonProperty("SafeZoneRadius")]
             public float SafeZoneRadius = 0;
+
+            [JsonProperty("AllowDamageToHostileOccupants")]
+            public bool AllowDamageToHostileOccupants = true;
 
             [JsonProperty("Turrets")]
             public TurretConfig[] Turrets = new TurretConfig[]

@@ -23,6 +23,7 @@ Default configuration:
 {
   "AutoZones": false,
   "SafeZoneRadius": 0,
+  "AllowDamageToHostileOccupants": true,
   "Turrets": [
     {
       "Position": {
@@ -44,7 +45,8 @@ Default configuration:
 }
 ```
 
-- `AutoZones` (`true` or `false`) -- While `true`, all Workcarts will automatically have safe zones; the `safecart.add` and `safecart.remove` commands will be disabled.
+- `AutoZones` (`true` or `false`) -- While `true`, all workcarts will automatically have safe zones; the `safecart.add` and `safecart.remove` commands will be disabled.
+- `AllowDamageToHostileOccupants` (`true` or `false`) -- While `false`, all players mounted on the workcart will be invulnerable, even if hostile.
 - `SafeZoneRadius` -- Radius of the safe zone around the workcart.
   - Set to `0` to only apply the safe zone to players standing on the workcart. Otherwise, at least `5` is recommended.
 - `Turrets` -- List of turret positions relative to the workcart.
