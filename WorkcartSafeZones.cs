@@ -37,6 +37,9 @@ namespace Oxide.Plugins
             if (!_pluginConfig.DisarmPlayersOnMount)
                 Unsubscribe(nameof(OnEntityEnter));
 
+            if (_pluginConfig.AllowDamageToHostileOccupants)
+                Unsubscribe(nameof(OnTurretTarget));
+
             Unsubscribe(nameof(OnEntitySpawned));
         }
 
@@ -121,6 +124,23 @@ namespace Oxide.Plugins
                 if (!activeItem.MoveToContainer(player.inventory.containerBelt, position))
                     player.inventory.GiveItem(activeItem);
             }, 0.2f);
+        }
+
+        // Only subscribed while disallowing damage to boarded hostile players.
+        private bool? OnTurretTarget(AutoTurret turret, BasePlayer player)
+        {
+            if (turret == null || player == null)
+                return null;
+
+            var workcart = GetMountedCart(player);
+            if (workcart == null)
+                return null;
+
+            // Disallow damage to players abord a safe workcart.
+            if (workcart.GetComponent<SafeCart>() != null)
+                return false;
+
+            return null;
         }
 
         #endregion
