@@ -34,7 +34,7 @@ namespace Oxide.Plugins
 
             permission.RegisterPermission(PermissionUse, this);
 
-            if (!_pluginConfig.UnequipWeaponOnMount)
+            if (!_pluginConfig.DisarmPlayersOnMount)
                 Unsubscribe(nameof(OnEntityEnter));
 
             Unsubscribe(nameof(OnEntitySpawned));
@@ -438,8 +438,8 @@ namespace Oxide.Plugins
             [JsonProperty("AllowDamageToHostileOccupants")]
             public bool AllowDamageToHostileOccupants = true;
 
-            [JsonProperty("UnequipWeaponOnMount")]
-            public bool UnequipWeaponOnMount = false;
+            [JsonProperty("DisarmPlayersOnMount")]
+            public bool DisarmPlayersOnMount = false;
 
             [JsonProperty("Turrets")]
             public TurretConfig[] Turrets = new TurretConfig[]
