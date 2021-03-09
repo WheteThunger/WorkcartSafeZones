@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using Oxide.Core;
 using Oxide.Core.Libraries.Covalence;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -20,6 +21,10 @@ namespace Oxide.Plugins
         private const string PermissionUse = "workcartsafezones.use";
         private const string BanditSentryPrefab = "assets/content/props/sentry_scientists/sentry.bandit.static.prefab";
 
+        private const float SafeZoneWarningCooldown = 10;
+
+        private Dictionary<ulong, float> _playersLastWarnedTime = new Dictionary<ulong, float>();
+
         private Configuration _pluginConfig;
         private SavedData _pluginData;
 
@@ -33,12 +38,6 @@ namespace Oxide.Plugins
             _pluginData = SavedData.Load();
 
             permission.RegisterPermission(PermissionUse, this);
-
-            if (!_pluginConfig.DisarmPlayersOnMount)
-                Unsubscribe(nameof(OnEntityEnter));
-
-            if (_pluginConfig.AllowDamageToHostileOccupants)
-                Unsubscribe(nameof(OnTurretTarget));
 
             Unsubscribe(nameof(OnEntitySpawned));
         }
@@ -80,67 +79,24 @@ namespace Oxide.Plugins
             return null;
         }
 
-        private bool? OnEntityTakeDamage(BasePlayer player)
+        private void OnEntityEnter(TriggerSafeZone triggerSafeZone, BasePlayer player)
         {
-            if (player.IsNpc)
-                return null;
-
-            if (!_pluginConfig.AllowDamageToHostileOccupants && player.IsHostile())
-            {
-                var cart = GetMountedCart(player);
-                if (cart == null)
-                    return null;
-
-                var component = cart.GetComponent<SafeCart>();
-                if (component == null)
-                    return null;
-
-                // Return true (standard) to cancel default behavior (prevent damage).
-                return true;
-            }
-
-            return null;
-        }
-
-        private void OnEntityEnter(TriggerParent triggerParent, BasePlayer player)
-        {
-            if (player.IsNpc)
+            if (player.IsNpc
+                || triggerSafeZone.GetComponentInParent<SafeCart>() == null
+                || !player.IsHostile())
                 return;
 
-            var component = triggerParent.GetComponentInParent<SafeCart>();
-            if (component == null)
+            var hostileTimeRemaining = player.State.unHostileTimestamp - Network.TimeEx.currentTimestamp;
+            if (hostileTimeRemaining < 0)
                 return;
 
-            var activeItem = player.GetActiveItem();
-            if (activeItem == null || !player.IsHostileItem(activeItem))
+            float lastWarningTime;
+            if (_playersLastWarnedTime.TryGetValue(player.userID, out lastWarningTime)
+                && lastWarningTime + SafeZoneWarningCooldown > Time.realtimeSinceStartup)
                 return;
 
-            var position = activeItem.position;
-            activeItem.RemoveFromContainer();
-            player.inventory.SendUpdatedInventory(PlayerInventory.Type.Belt, player.inventory.containerBelt);
-
-            player.Invoke(() =>
-            {
-                if (!activeItem.MoveToContainer(player.inventory.containerBelt, position))
-                    player.inventory.GiveItem(activeItem);
-            }, 0.2f);
-        }
-
-        // Only subscribed while disallowing damage to boarded hostile players.
-        private bool? OnTurretTarget(AutoTurret turret, BasePlayer player)
-        {
-            if (turret == null || player == null)
-                return null;
-
-            var workcart = GetMountedCart(player);
-            if (workcart == null)
-                return null;
-
-            // Disallow damage to players abord a safe workcart.
-            if (workcart.GetComponent<SafeCart>() != null)
-                return false;
-
-            return null;
+            ChatMessage(player, "Warning.Hostile", TimeSpan.FromSeconds(Math.Ceiling(hostileTimeRemaining)).ToString("g"));
+            _playersLastWarnedTime[player.userID] = Time.realtimeSinceStartup;
         }
 
         #endregion
@@ -455,12 +411,6 @@ namespace Oxide.Plugins
             [JsonProperty("SafeZoneRadius")]
             public float SafeZoneRadius = 0;
 
-            [JsonProperty("AllowDamageToHostileOccupants")]
-            public bool AllowDamageToHostileOccupants = true;
-
-            [JsonProperty("DisarmPlayersOnMount")]
-            public bool DisarmPlayersOnMount = false;
-
             [JsonProperty("Turrets")]
             public TurretConfig[] Turrets = new TurretConfig[]
             {
@@ -622,6 +572,7 @@ namespace Oxide.Plugins
                 ["Error.NoSafeZone"] = "That workcart doesn't have a safe zone.",
                 ["Add.Success"] = "Successfully added safe zone to the workcart.",
                 ["Remove.Success"] = "Successfully removed safe zone from the workcart.",
+                ["Warning.Hostile"] = "You are <color=red>hostile</color> for <color=red>{0}</color>. No safe zone protection.",
             }, this, "en");
         }
 
