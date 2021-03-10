@@ -17,6 +17,7 @@ namespace Oxide.Plugins
         #region Fields
 
         private static WorkcartSafeZones _pluginInstance;
+        private static Configuration _pluginConfig;
 
         private const string PermissionUse = "workcartsafezones.use";
         private const string BanditSentryPrefab = "assets/content/props/sentry_scientists/sentry.bandit.static.prefab";
@@ -25,7 +26,6 @@ namespace Oxide.Plugins
 
         private Dictionary<ulong, float> _playersLastWarnedTime = new Dictionary<ulong, float>();
 
-        private Configuration _pluginConfig;
         private SavedData _pluginData;
 
         #endregion
@@ -46,6 +46,7 @@ namespace Oxide.Plugins
         {
             SafeCart.DestroyAll();
             _pluginInstance = null;
+            _pluginConfig = null;
         }
 
         private void OnServerInitialized()
@@ -295,7 +296,10 @@ namespace Oxide.Plugins
 
             private void MaybeAddTurrets()
             {
-                foreach (var turretConfig in _pluginInstance._pluginConfig.Turrets)
+                if (!_pluginConfig.EnableTurrets)
+                    return;
+
+                foreach (var turretConfig in _pluginConfig.TurretPositions)
                     _autoTurrets.Add(SpawnTurret(_workcart, turretConfig.Position, turretConfig.RotationAngle));
             }
 
@@ -318,7 +322,7 @@ namespace Oxide.Plugins
                 var safeZone = _child.AddComponent<TriggerSafeZone>();
                 safeZone.interestLayers = Rust.Layers.Mask.Player_Server;
 
-                var radius = _pluginInstance._pluginConfig.SafeZoneRadius;
+                var radius = _pluginConfig.SafeZoneRadius;
                 if (radius > 0)
                 {
                     var collider = _child.gameObject.AddComponent<SphereCollider>();
@@ -411,8 +415,11 @@ namespace Oxide.Plugins
             [JsonProperty("SafeZoneRadius")]
             public float SafeZoneRadius = 0;
 
-            [JsonProperty("Turrets")]
-            public TurretConfig[] Turrets = new TurretConfig[]
+            [JsonProperty("EnableTurrets")]
+            public bool EnableTurrets = true;
+
+            [JsonProperty("TurretPositions")]
+            public TurretConfig[] TurretPositions = new TurretConfig[]
             {
                 new TurretConfig
                 {
