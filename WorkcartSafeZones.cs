@@ -404,7 +404,7 @@ namespace Oxide.Plugins
             public float SafeZoneRadius = 0;
 
             [JsonProperty("EnableTurrets")]
-            public bool EnableTurrets = true;
+            public bool EnableTurrets = false;
 
             [JsonProperty("TurretPositions")]
             public TurretConfig[] TurretPositions = new TurretConfig[]

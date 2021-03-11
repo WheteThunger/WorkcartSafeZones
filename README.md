@@ -1,6 +1,6 @@
 ## Features
 
-- Allows creating safe zones on workcarts (can be automatic)
+- Allows creating mobile safe zones on workcarts (can be automatic)
 - Allows spawning NPC auto turrets on workcarts with the safe zone
 - Prevents damage to workcarts that have safe zones
 
@@ -23,7 +23,7 @@ Default configuration:
 {
   "AutoZones": false,
   "SafeZoneRadius": 0,
-  "EnableTurrets": true,
+  "EnableTurrets": false,
   "TurretPositions": [
     {
       "Position": {
@@ -49,6 +49,7 @@ Default configuration:
 - `SafeZoneRadius` -- Radius of the safe zone around the workcart.
   - Set to `0` to only apply the safe zone to players standing on the workcart. Otherwise, at least `5` is recommended.
 - `EnableTurrets` (`true` or `false`) -- Whether to spawn NPC auto turrets with workcart safe zones.
+  - Note: It's recommended to enable the NPC auto turrets **only if** you have disabled AI or disabled tunnel dwellers from spawning, since fighting them will consider you hostile, causing the NPC auto turrets to attack you.
 - `TurretPositions` -- List of turret positions relative to the workcart. Only applies when `EnableTurrets` is `true`.
   - Each entry in this list will cause a separate auto turret to be spawned (on every workcart that has a safe zone).
 
