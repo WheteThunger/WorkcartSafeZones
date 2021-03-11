@@ -11,7 +11,7 @@ using UnityEngine;
 namespace Oxide.Plugins
 {
     [Info("Workcart Safe Zones", "WhiteThunder", "1.0.0")]
-    [Description("Adds safe zones and optional NPC auto turrets to workcarts.")]
+    [Description("Adds mobile safe zones and optional NPC auto turrets to workcarts.")]
     internal class WorkcartSafeZones : CovalencePlugin
     {
         #region Fields
