@@ -303,8 +303,7 @@ namespace Oxide.Plugins
             }
 
             private TrainEngine _workcart;
-            private GameObject _child;
-            private List<TriggerSafeZone> _safeZones = new List<TriggerSafeZone>();
+            private GameObject _safeZone;
             private List<NPCAutoTurret> _autoTurrets = new List<NPCAutoTurret>();
 
             private void Awake()
@@ -328,9 +327,9 @@ namespace Oxide.Plugins
 
             private void AddVolumetricSafeZone()
             {
-                _child = gameObject.CreateChild();
+                _safeZone = gameObject.CreateChild();
 
-                var safeZone = _child.AddComponent<TriggerSafeZone>();
+                var safeZone = _safeZone.AddComponent<TriggerSafeZone>();
                 safeZone.interestLayers = Rust.Layers.Mask.Player_Server;
                 safeZone.maxAltitude = 10;
                 safeZone.maxDepth = 1;
@@ -338,7 +337,7 @@ namespace Oxide.Plugins
                 var radius = _pluginConfig.SafeZoneRadius;
                 if (radius > 0)
                 {
-                    var collider = _child.gameObject.AddComponent<SphereCollider>();
+                    var collider = _safeZone.gameObject.AddComponent<SphereCollider>();
                     collider.isTrigger = true;
                     collider.gameObject.layer = 18;
                     collider.center = Vector3.zero;
@@ -347,7 +346,7 @@ namespace Oxide.Plugins
                 else
                 {
                     // Add a box collider for just the workcart area.
-                    var collider = _child.gameObject.AddComponent<BoxCollider>();
+                    var collider = _safeZone.gameObject.AddComponent<BoxCollider>();
                     collider.isTrigger = true;
                     collider.gameObject.layer = 18;
                     collider.size = _workcart.bounds.extents * 2 + new Vector3(0, safeZone.maxAltitude, 0);
@@ -356,12 +355,8 @@ namespace Oxide.Plugins
 
             private void OnDestroy()
             {
-                foreach (var triggerSafeZone in _safeZones)
-                    if (triggerSafeZone != null)
-                        Destroy(triggerSafeZone);
-
-                if (_child != null)
-                    Destroy(_child);
+                if (_safeZone != null)
+                    Destroy(_safeZone);
 
                 foreach (var autoTurret in _autoTurrets)
                     if (autoTurret != null)
