@@ -23,7 +23,7 @@ Default configuration:
 {
   "AutoZones": false,
   "SafeZoneRadius": 0,
-  "DisarmBoardedPlayers": false,
+  "DisarmOccupants": false,
   "EnableTurrets": false,
   "TurretPositions": [
     {
@@ -49,7 +49,7 @@ Default configuration:
 - `AutoZones` (`true` or `false`) -- While `true`, all workcarts will automatically have safe zones; the `safecart.add` and `safecart.remove` commands will be disabled.
 - `SafeZoneRadius` -- Radius of the safe zone around the workcart.
   - Set to `0` to only apply the safe zone to players standing on the workcart. Otherwise, at least `5` is recommended.
-- `DisarmBoardedPlayers` (`true` or `false`) -- While `true`, players who board the workcart with a weapon drawn will automatically have it holstered.
+- `DisarmOccupants` (`true` or `false`) -- While `true`, players who board the workcart with a weapon drawn will automatically have it holstered.
 - `EnableTurrets` (`true` or `false`) -- Whether to spawn NPC auto turrets with workcart safe zones.
   - Note: It's recommended to enable the NPC auto turrets **only if** you have disabled AI or disabled tunnel dwellers from spawning, since fighting them will consider you hostile, causing the NPC auto turrets to attack you.
 - `TurretPositions` -- List of turret positions relative to the workcart. Only applies when `EnableTurrets` is `true`.

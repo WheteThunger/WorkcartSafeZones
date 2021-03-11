@@ -102,7 +102,7 @@ namespace Oxide.Plugins
 
         private void OnEntityEnter(TriggerParent triggerParent, BasePlayer player)
         {
-            if (!_pluginConfig.DisarmBoardedPlayers
+            if (!_pluginConfig.DisarmOccupants
                 || player.IsNpc
                 || triggerParent.GetComponentInParent<SafeCart>() == null)
                 return;
@@ -427,8 +427,8 @@ namespace Oxide.Plugins
             [JsonProperty("SafeZoneRadius")]
             public float SafeZoneRadius = 0;
 
-            [JsonProperty("DisarmBoardedPlayers")]
-            public bool DisarmBoardedPlayers = false;
+            [JsonProperty("DisarmOccupants")]
+            public bool DisarmOccupants = false;
 
             [JsonProperty("EnableTurrets")]
             public bool EnableTurrets = false;
