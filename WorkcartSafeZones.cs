@@ -100,6 +100,30 @@ namespace Oxide.Plugins
             _playersLastWarnedTime[player.userID] = Time.realtimeSinceStartup;
         }
 
+        private void OnEntityEnter(TriggerParent triggerParent, BasePlayer player)
+        {
+            if (!_pluginConfig.DisarmBoardedPlayers
+                || player.IsNpc
+                || triggerParent.GetComponentInParent<SafeCart>() == null)
+                return;
+
+            var activeItem = player.GetActiveItem();
+            if (activeItem == null || !player.IsHostileItem(activeItem))
+                return;
+
+            var position = activeItem.position;
+            activeItem.RemoveFromContainer();
+            player.inventory.SendUpdatedInventory(PlayerInventory.Type.Belt, player.inventory.containerBelt);
+
+            // Note: It's possible to leak an item here if the player is killed during the delay,
+            // but the number of items that would be leaked this way is insignificant.
+            player.Invoke(() =>
+            {
+                if (!activeItem.MoveToContainer(player.inventory.containerBelt, position))
+                    player.inventory.GiveItem(activeItem);
+            }, 0.2f);
+        }
+
         #endregion
 
         #region API
@@ -402,6 +426,9 @@ namespace Oxide.Plugins
 
             [JsonProperty("SafeZoneRadius")]
             public float SafeZoneRadius = 0;
+
+            [JsonProperty("DisarmBoardedPlayers")]
+            public bool DisarmBoardedPlayers = false;
 
             [JsonProperty("EnableTurrets")]
             public bool EnableTurrets = false;
