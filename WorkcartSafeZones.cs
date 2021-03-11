@@ -321,6 +321,8 @@ namespace Oxide.Plugins
 
                 var safeZone = _child.AddComponent<TriggerSafeZone>();
                 safeZone.interestLayers = Rust.Layers.Mask.Player_Server;
+                safeZone.maxAltitude = 10;
+                safeZone.maxDepth = 1;
 
                 var radius = _pluginConfig.SafeZoneRadius;
                 if (radius > 0)
@@ -338,7 +340,7 @@ namespace Oxide.Plugins
                     var collider = _child.gameObject.AddComponent<BoxCollider>();
                     collider.isTrigger = true;
                     collider.gameObject.layer = 18;
-                    collider.size = _workcart.bounds.extents * 2 + Vector3.up * 6;
+                    collider.size = _workcart.bounds.extents * 2 + new Vector3(0, safeZone.maxAltitude, 0);
                 }
             }
 
