@@ -289,7 +289,6 @@ namespace Oxide.Plugins
                 if (_workcart == null)
                     return;
 
-                AddPrimarySafeZones();
                 AddVolumetricSafeZone();
                 MaybeAddTurrets();
             }
@@ -301,18 +300,6 @@ namespace Oxide.Plugins
 
                 foreach (var turretConfig in _pluginConfig.TurretPositions)
                     _autoTurrets.Add(SpawnTurret(_workcart, turretConfig.Position, turretConfig.RotationAngle));
-            }
-
-            private void AddPrimarySafeZones()
-            {
-                // Add a trigger alongside each TriggerParent (and implicitly TriggerLadder).
-                // This ensures that boarding the workcart will add the player to the safe zone.
-                foreach (var triggerParent in GetComponentsInChildren<TriggerParent>())
-                {
-                    var safeZone = triggerParent.gameObject.AddComponent<TriggerSafeZone>();
-                    safeZone.interestLayers = Rust.Layers.Mask.Player_Server;
-                    _safeZones.Add(safeZone);
-                }
             }
 
             private void AddVolumetricSafeZone()
@@ -336,7 +323,6 @@ namespace Oxide.Plugins
                 else
                 {
                     // Add a box collider for just the workcart area.
-                    // This fixes an issue where dismounting the cabin would remove you from the safe zone.
                     var collider = _child.gameObject.AddComponent<BoxCollider>();
                     collider.isTrigger = true;
                     collider.gameObject.layer = 18;
