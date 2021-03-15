@@ -1,6 +1,6 @@
 ## Features
 
-- Allows creating mobile safe zones on workcarts (can be automatic)
+- Allows creating mobile safe zones on workcarts
 - Allows spawning NPC auto turrets on workcarts with the safe zone
 - Prevents damage to workcarts that have safe zones
 
