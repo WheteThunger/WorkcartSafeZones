@@ -21,8 +21,9 @@ Default configuration:
 
 ```json
 {
-  "AutoZones": false,
-  "SafeZoneRadius": 0,
+  "AddToAllWorkcarts": false,
+  "AddToAutomatedWorkcarts": true,
+  "SafeZoneRadius": 0.0,
   "DisarmOccupants": false,
   "EnableTurrets": false,
   "TurretPositions": [
@@ -46,7 +47,8 @@ Default configuration:
 }
 ```
 
-- `AutoZones` (`true` or `false`) -- While `true`, all workcarts will automatically have safe zones; the `safecart.add` and `safecart.remove` commands will be disabled.
+- `AddToAllWorkcarts` (`true` or `false`) -- While `true`, all workcarts will automatically receive safe zones.
+- `AddToAutomatedWorkcarts` (`true` or `false`) -- While `true`, only workcarts automated via the [Automated Workcarts](https://umod.org/plugins/automated-workcarts) plugin will receive safe zones. This is the default behavior of the plugin.
 - `SafeZoneRadius` -- Radius of the safe zone around the workcart.
   - Set to `0` to apply the safe zone only to players standing on the workcart. Otherwise, a radius of at least `5` is recommended.
 - `DisarmOccupants` (`true` or `false`) -- While `true`, players who board the workcart with a weapon drawn will automatically have it holstered. This effectively prevents them from attacking others while they are on board.
@@ -62,10 +64,10 @@ Default configuration:
 {
   "Error.NoPermission": "You don't have permission to do that.",
   "Error.NoWorkcartFound": "Error: No workcart found.",
-  "Error.AutoZonesEnabled": "Error: You cannot do that while automatic zones are enabled.",
   "Error.SafeZonePresent": "That workcart already has a safe zone.",
   "Error.NoSafeZone": "That workcart doesn't have a safe zone.",
   "Add.Success": "Successfully added safe zone to the workcart.",
+  "Add.Error": "Error: Unable to add a safe zone to that workcart.",
   "Remove.Success": "Successfully removed safe zone from the workcart.",
   "Warning.Hostile": "You are <color=red>hostile</color> for <color=red>{0}</color>. No safe zone protection."
 }

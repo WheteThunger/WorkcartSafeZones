@@ -3,18 +3,23 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using Oxide.Core;
 using Oxide.Core.Libraries.Covalence;
+using Oxide.Core.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using VLB;
 
 namespace Oxide.Plugins
 {
-    [Info("Workcart Safe Zones", "WhiteThunder", "1.0.0")]
+    [Info("Workcart Safe Zones", "WhiteThunder", "2.0.0")]
     [Description("Adds mobile safe zones and optional NPC auto turrets to workcarts.")]
     internal class WorkcartSafeZones : CovalencePlugin
     {
         #region Fields
+
+        [PluginReference]
+        private Plugin AutomatedWorkcarts, CargoTrainEvent;
 
         private static WorkcartSafeZones _pluginInstance;
         private static Configuration _pluginConfig;
@@ -40,28 +45,51 @@ namespace Oxide.Plugins
             permission.RegisterPermission(PermissionUse, this);
 
             Unsubscribe(nameof(OnEntitySpawned));
-        }
-
-        private void Unload()
-        {
-            SafeCart.DestroyAll();
-            _pluginInstance = null;
-            _pluginConfig = null;
+            Unsubscribe(nameof(OnWorkcartAutomationStarted));
+            Unsubscribe(nameof(OnWorkcartAutomationStopped));
         }
 
         private void OnServerInitialized()
         {
+            CheckDependencies();
+
             _pluginData.CleanStaleData();
 
-            foreach (var entity in BaseNetworkable.serverEntities)
+            if (_pluginConfig.AddToAllWorkcarts)
             {
-                var workcart = entity as TrainEngine;
-                if (workcart != null && (_pluginConfig.AutoZones || _pluginData.SafeWorkcarts.Contains(workcart.net.ID)))
-                    workcart.gameObject.AddComponent<SafeCart>();
+                foreach (var workcart in BaseNetworkable.serverEntities.OfType<TrainEngine>().ToArray())
+                    TryCreateSafeZone(workcart);
+
+                Subscribe(nameof(OnEntitySpawned));
+            }
+            else if (_pluginConfig.AddToAutomatedWorkcarts)
+            {
+                var workcartList = GetAutomatedWorkcarts();
+                if (workcartList != null)
+                {
+                    foreach (var workcart in workcartList)
+                        TryCreateSafeZone(workcart);
+                }
+
+                Subscribe(nameof(OnWorkcartAutomationStarted));
+                Subscribe(nameof(OnWorkcartAutomationStopped));
             }
 
-            if (_pluginConfig.AutoZones)
-                Subscribe(nameof(OnEntitySpawned));
+            foreach (var workcartId in _pluginData.SafeWorkcarts)
+            {
+                var workcart = BaseNetworkable.serverEntities.Find(workcartId) as TrainEngine;
+                if (workcart != null)
+                    TryCreateSafeZone(workcart);
+            }
+        }
+
+        private void Unload()
+        {
+            foreach (var workcart in BaseNetworkable.serverEntities.OfType<TrainEngine>())
+                SafeWorkcart.RemoveFromWorkcart(workcart);
+
+            _pluginConfig = null;
+            _pluginInstance = null;
         }
 
         private void OnEntitySpawned(TrainEngine workcart)
@@ -71,7 +99,7 @@ namespace Oxide.Plugins
 
         private bool? OnEntityTakeDamage(TrainEngine workcart)
         {
-            if (workcart.GetComponent<SafeCart>() != null)
+            if (workcart.GetComponent<SafeWorkcart>() != null)
             {
                 // Return true (standard) to cancel default behavior (prevent damage).
                 return true;
@@ -83,7 +111,7 @@ namespace Oxide.Plugins
         private void OnEntityEnter(TriggerSafeZone triggerSafeZone, BasePlayer player)
         {
             if (player.IsNpc
-                || triggerSafeZone.GetComponentInParent<SafeCart>() == null
+                || triggerSafeZone.GetComponentInParent<SafeWorkcart>() == null
                 || !player.IsHostile())
                 return;
 
@@ -104,7 +132,7 @@ namespace Oxide.Plugins
         {
             if (!_pluginConfig.DisarmOccupants
                 || player.IsNpc
-                || triggerParent.GetComponentInParent<SafeCart>() == null)
+                || triggerParent.GetComponentInParent<SafeWorkcart>() == null)
                 return;
 
             var activeItem = player.GetActiveItem();
@@ -124,16 +152,73 @@ namespace Oxide.Plugins
             }, 0.2f);
         }
 
+        // This hook is exposed by plugin: Automated Workcarts (AutomatedWorkcarts).
+        private void OnWorkcartAutomationStarted(TrainEngine workcart)
+        {
+            TryCreateSafeZone(workcart);
+        }
+
+        // This hook is exposed by plugin: Automated Workcarts (AutomatedWorkcarts).
+        private void OnWorkcartAutomationStopped(TrainEngine workcart)
+        {
+            SafeWorkcart.RemoveFromWorkcart(workcart);
+        }
+
+        // This hook is exposed by plugin: Cargo Train Event (CargoTrainEvent).
+        private void OnTrainEventStarted(TrainEngine workcart)
+        {
+            SafeWorkcart.RemoveFromWorkcart(workcart);
+        }
+
+        #endregion
+
+        #region Dependencies
+
+        private void CheckDependencies()
+        {
+            if (_pluginConfig.AddToAllWorkcarts)
+                return;
+
+            if (_pluginConfig.AddToAutomatedWorkcarts && AutomatedWorkcarts == null)
+                LogError("AutomatedWorkcarts is not loaded, get it at http://umod.org. If you don't intend to use this plugin with Automated Workcarts, then set \"AddToAutomatedWorkcarts\" to false in the config and you will no longer see this message.");
+        }
+
+        private TrainEngine[] GetAutomatedWorkcarts()
+        {
+            return AutomatedWorkcarts?.Call("API_GetAutomatedWorkcarts") as TrainEngine[];
+        }
+
+        private bool IsCargoTrain(TrainEngine workcart)
+        {
+            var result = CargoTrainEvent?.Call("IsTrainSpecial", workcart.net.ID);
+            return result is bool && (bool)result;
+        }
+
         #endregion
 
         #region API
 
         private bool API_CreateSafeZone(TrainEngine workcart)
         {
-            if (workcart.GetComponent<SafeCart>() != null)
+            if (workcart.GetComponent<SafeWorkcart>() != null)
                 return true;
 
             return TryCreateSafeZone(workcart);
+        }
+
+        #endregion
+
+        #region Exposed Hooks
+
+        private static bool CreateSafeZoneWasBlocked(TrainEngine workcart)
+        {
+            object hookResult = Interface.CallHook("OnWorkcartSafeZoneCreate", workcart);
+            return hookResult is bool && (bool)hookResult == false;
+        }
+
+        private static void CallHookSafeZoneCreated(TrainEngine workcart)
+        {
+            Interface.CallHook("OnWorkcartSafeZoneCreated", workcart);
         }
 
         #endregion
@@ -152,14 +237,8 @@ namespace Oxide.Plugins
                 return;
             }
 
-            if (_pluginConfig.AutoZones)
-            {
-                ReplyToPlayer(player, "Error.AutoZonesEnabled");
-                return;
-            }
-
             var basePlayer = player.Object as BasePlayer;
-            var workcart = GetPlayerCart(basePlayer);
+            var workcart = GetLookEntity(basePlayer) as TrainEngine;
 
             if (workcart == null)
             {
@@ -167,7 +246,7 @@ namespace Oxide.Plugins
                 return;
             }
 
-            if (workcart.GetComponent<SafeCart>() != null)
+            if (workcart.GetComponent<SafeWorkcart>() != null)
             {
                 ReplyToPlayer(player, "Error.SafeZonePresent");
                 return;
@@ -177,6 +256,10 @@ namespace Oxide.Plugins
             {
                 _pluginData.AddWorkcart(workcart);
                 ReplyToPlayer(player, "Add.Success");
+            }
+            else
+            {
+                ReplyToPlayer(player, "Add.Error");
             }
         }
 
@@ -192,14 +275,8 @@ namespace Oxide.Plugins
                 return;
             }
 
-            if (_pluginConfig.AutoZones)
-            {
-                ReplyToPlayer(player, "Error.AutoZonesEnabled");
-                return;
-            }
-
             var basePlayer = player.Object as BasePlayer;
-            var workcart = GetPlayerCart(basePlayer);
+            var workcart = GetLookEntity(basePlayer) as TrainEngine;
 
             if (workcart == null)
             {
@@ -207,14 +284,14 @@ namespace Oxide.Plugins
                 return;
             }
 
-            var component = workcart.GetComponent<SafeCart>();
+            var component = workcart.GetComponent<SafeWorkcart>();
             if (component == null)
             {
                 ReplyToPlayer(player, "Error.NoSafeZone");
                 return;
             }
 
-            UnityEngine.Object.Destroy(component);
+            SafeWorkcart.RemoveFromWorkcart(workcart);
             _pluginData.RemoveWorkcart(workcart);
             ReplyToPlayer(player, "Remove.Success");
         }
@@ -223,20 +300,16 @@ namespace Oxide.Plugins
 
         #region Helper Methods
 
-        private static bool AddSafeZoneWasBlocked(TrainEngine workcart)
-        {
-            object hookResult = Interface.CallHook("OnWorkcartSafeZoneCreate", workcart);
-            return hookResult is bool && (bool)hookResult == false;
-        }
-
         private static bool TryCreateSafeZone(TrainEngine workcart)
         {
-            if (AddSafeZoneWasBlocked(workcart))
+            if (CreateSafeZoneWasBlocked(workcart))
                 return false;
 
-            workcart.gameObject.AddComponent<SafeCart>();
-            workcart.SetHealth(workcart.MaxHealth());
-            Interface.CallHook("OnWorkcartSafeZoneCreated", workcart);
+            if (_pluginInstance.IsCargoTrain(workcart))
+                return false;
+
+            SafeWorkcart.AddToWorkcart(workcart);
+            CallHookSafeZoneCreated(workcart);
 
             return true;
         }
@@ -256,7 +329,7 @@ namespace Oxide.Plugins
             return autoTurret;
         }
 
-        private static BaseEntity GetLookEntity(BasePlayer player, float maxDistance = 6)
+        private static BaseEntity GetLookEntity(BasePlayer player, float maxDistance = 10)
         {
             RaycastHit hit;
             return Physics.Raycast(player.eyes.HeadRay(), out hit, maxDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)
@@ -264,46 +337,21 @@ namespace Oxide.Plugins
                 : null;
         }
 
-        private static TrainEngine GetMountedCart(BasePlayer player)
-        {
-            var mountedWorkcart = player.GetMountedVehicle() as TrainEngine;
-            if (mountedWorkcart != null)
-                return mountedWorkcart;
-
-            var parentWorkcart = player.GetParentEntity() as TrainEngine;
-            if (parentWorkcart != null)
-                return parentWorkcart;
-
-            return null;
-        }
-
-        private static TrainEngine GetPlayerCart(BasePlayer player) =>
-            GetLookEntity(player) as TrainEngine ?? GetMountedCart(player);
-
         #endregion
 
         #region Safe Zone
 
-        internal class SafeCart : MonoBehaviour
+        private class SafeWorkcart : MonoBehaviour
         {
-            public static void DestroyAll()
-            {
-                foreach (var entity in BaseNetworkable.serverEntities)
-                {
-                    var workcart = entity as TrainEngine;
-                    if (workcart == null)
-                        continue;
+            public static void AddToWorkcart(TrainEngine workcart) =>
+                workcart.GetOrAddComponent<SafeWorkcart>();
 
-                    var component = workcart.GetComponent<SafeCart>();
-                    if (component == null)
-                        continue;
-
-                    Destroy(component);
-                }
-            }
+            public static void RemoveFromWorkcart(TrainEngine workcart) =>
+                UnityEngine.Object.DestroyImmediate(workcart.GetComponent<SafeWorkcart>());
 
             private TrainEngine _workcart;
-            private GameObject _safeZone;
+            private GameObject _child;
+            private ProtectionProperties _originalProtection;
             private List<NPCAutoTurret> _autoTurrets = new List<NPCAutoTurret>();
 
             private void Awake()
@@ -311,6 +359,8 @@ namespace Oxide.Plugins
                 _workcart = GetComponent<TrainEngine>();
                 if (_workcart == null)
                     return;
+
+                _workcart.SetHealth(_workcart.MaxHealth());
 
                 AddVolumetricSafeZone();
                 MaybeAddTurrets();
@@ -327,9 +377,9 @@ namespace Oxide.Plugins
 
             private void AddVolumetricSafeZone()
             {
-                _safeZone = gameObject.CreateChild();
+                _child = gameObject.CreateChild();
 
-                var safeZone = _safeZone.AddComponent<TriggerSafeZone>();
+                var safeZone = _child.AddComponent<TriggerSafeZone>();
                 safeZone.interestLayers = Rust.Layers.Mask.Player_Server;
                 safeZone.maxAltitude = 10;
                 safeZone.maxDepth = 1;
@@ -337,7 +387,7 @@ namespace Oxide.Plugins
                 var radius = _pluginConfig.SafeZoneRadius;
                 if (radius > 0)
                 {
-                    var collider = _safeZone.gameObject.AddComponent<SphereCollider>();
+                    var collider = _child.AddComponent<SphereCollider>();
                     collider.isTrigger = true;
                     collider.gameObject.layer = 18;
                     collider.center = Vector3.zero;
@@ -346,7 +396,7 @@ namespace Oxide.Plugins
                 else
                 {
                     // Add a box collider for just the workcart area.
-                    var collider = _safeZone.gameObject.AddComponent<BoxCollider>();
+                    var collider = _child.AddComponent<BoxCollider>();
                     collider.isTrigger = true;
                     collider.gameObject.layer = 18;
                     collider.size = _workcart.bounds.extents * 2 + new Vector3(0, safeZone.maxAltitude, 0);
@@ -355,8 +405,8 @@ namespace Oxide.Plugins
 
             private void OnDestroy()
             {
-                if (_safeZone != null)
-                    Destroy(_safeZone);
+                if (_child != null)
+                    Destroy(_child);
 
                 foreach (var autoTurret in _autoTurrets)
                     if (autoTurret != null)
@@ -416,8 +466,11 @@ namespace Oxide.Plugins
 
         private class Configuration : SerializableConfiguration
         {
-            [JsonProperty("AutoZones")]
-            public bool AutoZones = false;
+            [JsonProperty("AddToAllWorkcarts")]
+            public bool AddToAllWorkcarts = false;
+
+            [JsonProperty("AddToAutomatedWorkcarts")]
+            public bool AddToAutomatedWorkcarts = true;
 
             [JsonProperty("SafeZoneRadius")]
             public float SafeZoneRadius = 0;
@@ -546,8 +599,9 @@ namespace Oxide.Plugins
                     SaveConfig();
                 }
             }
-            catch
+            catch (Exception e)
             {
+                LogError(e.Message);
                 LogWarning($"Configuration file {Name}.json is invalid; using defaults");
                 LoadDefaultConfig();
             }
@@ -584,10 +638,10 @@ namespace Oxide.Plugins
             {
                 ["Error.NoPermission"] = "You don't have permission to do that.",
                 ["Error.NoWorkcartFound"] = "Error: No workcart found.",
-                ["Error.AutoZonesEnabled"] = "Error: You cannot do that while automatic zones are enabled.",
                 ["Error.SafeZonePresent"] = "That workcart already has a safe zone.",
                 ["Error.NoSafeZone"] = "That workcart doesn't have a safe zone.",
                 ["Add.Success"] = "Successfully added safe zone to the workcart.",
+                ["Add.Error"] = "Error: Unable to add a safe zone to that workcart.",
                 ["Remove.Success"] = "Successfully removed safe zone from the workcart.",
                 ["Warning.Hostile"] = "You are <color=red>hostile</color> for <color=red>{0}</color>. No safe zone protection.",
             }, this, "en");
