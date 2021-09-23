@@ -180,7 +180,7 @@ namespace Oxide.Plugins
                 return;
 
             if (_pluginConfig.AddToAutomatedWorkcarts && AutomatedWorkcarts == null)
-                LogError("AutomatedWorkcarts is not loaded, get it at http://umod.org. If you don't intend to use this plugin with Automated Workcarts, then set \"AddToAutomatedWorkcarts\" to false in the config and you will no longer see this message.");
+                LogWarning("AutomatedWorkcarts is not loaded, get it at http://umod.org. If you don't intend to use this plugin with Automated Workcarts, then set \"AddToAutomatedWorkcarts\" to false in the config and you will no longer see this message.");
         }
 
         private TrainEngine[] GetAutomatedWorkcarts()
