@@ -4,6 +4,8 @@
 - Allows spawning NPC auto turrets on workcarts with the safe zone
 - Prevents damage to workcarts that have safe zones
 
+This plugin is intended primarily to be used with [Automated Workcarts](https://umod.org/plugins/workcart-safe-zones), but this plugin can also be used standalone.
+
 ## Permissions
 
 - `workcartsafezones.use` -- Required to use the `safecart.add` and `safecart.remove` commands
@@ -48,6 +50,7 @@ Default configuration:
 ```
 
 - `AddToAllWorkcarts` (`true` or `false`) -- While `true`, all workcarts will automatically receive safe zones.
+  - Note: Workcarts controlled by the Cargo Train Event plugin will always be ignored.
 - `AddToAutomatedWorkcarts` (`true` or `false`) -- While `true`, only workcarts automated via the [Automated Workcarts](https://umod.org/plugins/automated-workcarts) plugin will receive safe zones. This is the default behavior of the plugin.
 - `SafeZoneRadius` -- Radius of the safe zone around the workcart.
   - Set to `0` to apply the safe zone only to players standing on the workcart. Otherwise, a radius of at least `5` is recommended.
