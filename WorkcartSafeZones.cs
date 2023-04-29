@@ -12,7 +12,7 @@ using VLB;
 
 namespace Oxide.Plugins
 {
-    [Info("Workcart Safe Zones", "WhiteThunder", "2.0.0")]
+    [Info("Workcart Safe Zones", "WhiteThunder", "2.0.1")]
     [Description("Adds mobile safe zones and optional NPC auto turrets to workcarts.")]
     internal class WorkcartSafeZones : CovalencePlugin
     {
@@ -77,7 +77,7 @@ namespace Oxide.Plugins
 
             foreach (var workcartId in _pluginData.SafeWorkcarts)
             {
-                var workcart = BaseNetworkable.serverEntities.Find(workcartId) as TrainEngine;
+                var workcart = BaseNetworkable.serverEntities.Find(new NetworkableId(workcartId)) as TrainEngine;
                 if (workcart != null)
                     TryCreateSafeZone(workcart);
             }
@@ -421,7 +421,7 @@ namespace Oxide.Plugins
         private class SavedData
         {
             [JsonProperty("SafeWorkcartIds")]
-            public List<uint> SafeWorkcarts = new List<uint>();
+            public List<ulong> SafeWorkcarts = new List<ulong>();
 
             public static SavedData Load() =>
                 Interface.Oxide.DataFileSystem.ReadObject<SavedData>(_pluginInstance.Name) ?? new SavedData();
@@ -431,13 +431,13 @@ namespace Oxide.Plugins
 
             public void AddWorkcart(TrainEngine workcart)
             {
-                SafeWorkcarts.Add(workcart.net.ID);
+                SafeWorkcarts.Add(workcart.net.ID.Value);
                 Save();
             }
 
             public void RemoveWorkcart(TrainEngine workcart)
             {
-                SafeWorkcarts.Remove(workcart.net.ID);
+                SafeWorkcarts.Remove(workcart.net.ID.Value);
                 Save();
             }
 
@@ -447,7 +447,7 @@ namespace Oxide.Plugins
 
                 for (var i = SafeWorkcarts.Count - 1; i >= 0; i--)
                 {
-                    var entity = BaseNetworkable.serverEntities.Find(SafeWorkcarts[i]);
+                    var entity = BaseNetworkable.serverEntities.Find(new NetworkableId(SafeWorkcarts[i]));
                     if (entity == null)
                     {
                         SafeWorkcarts.RemoveAt(i);
